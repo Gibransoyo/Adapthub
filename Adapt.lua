@@ -2145,7 +2145,8 @@ startAntiRagdoll = function()
 end
 stopAntiRagdoll = function()
 	if Conns.antiRag then Conns.antiRag:Disconnect(); Conns.antiRag = nil end
-		end
+end
+
 applyFPSBoost = function()
 	pcall(function() setfpscap(999999999) end)
 	local function processObj(v)

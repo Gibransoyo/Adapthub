@@ -1,0 +1,368 @@
+print("deobf by speed hub ez gng discord.gg/speedhub")
+print("deobf by speed hub ez gng discord.gg/speedhub")
+print("deobf by speed hub ez gng discord.gg/speedhub")
+print("deobf by speed hub ez gng discord.gg/speedhub")
+print("deobf by speed hub ez gng discord.gg/speedhub")
+print("deobf by speed hub ez gng discord.gg/speedhub")
+
+-- TRACES X 420 HUB (Fully Fixed + Clean)
+
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TRACES X 420 HUB ANTI BAT"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Main Frame
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 260, 0, 200)
+Main.Position = UDim2.new(0.5, -130, 0.5, -95)
+Main.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+Main.Active = true
+Main.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 14)
+MainCorner.Parent = Main
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.new(1, 1, 1)
+MainStroke.Thickness = 1.4
+MainStroke.Transparency = 0.35
+MainStroke.Parent = Main
+
+-- Background Image
+local Background = Instance.new("ImageLabel")
+Background.Name = "Background"
+Background.Size = UDim2.new(1, 0, 1, 0)
+Background.BackgroundTransparency = 1
+Background.Image = "rbxassetid://136923775833734"
+Background.ScaleType = Enum.ScaleType.Crop
+Background.ImageTransparency = 0.06
+Background.ZIndex = 1
+Background.Parent = Main
+
+local BackgroundCorner = Instance.new("UICorner")
+BackgroundCorner.CornerRadius = UDim.new(0, 14)
+BackgroundCorner.Parent = Background
+
+-- Dark Overlay
+local Overlay = Instance.new("Frame")
+Overlay.Size = UDim2.new(1, 0, 1, 0)
+Overlay.BackgroundColor3 = Color3.new(0, 0, 0)
+Overlay.BackgroundTransparency = 0.45
+Overlay.BorderSizePixel = 0
+Overlay.ZIndex = 2
+Overlay.Parent = Main
+
+local OverlayCorner = Instance.new("UICorner")
+OverlayCorner.CornerRadius = UDim.new(0, 14)
+OverlayCorner.Parent = Overlay
+
+-- Header Image
+local HeaderImage = Instance.new("ImageLabel")
+HeaderImage.Name = "HeaderImage"
+HeaderImage.BackgroundTransparency = 1
+HeaderImage.Image = "rbxassetid://96474640431338"
+HeaderImage.ScaleType = Enum.ScaleType.Crop
+HeaderImage.Size = UDim2.new(1, 0, 0, 54)
+HeaderImage.Position = UDim2.new(0, 0, 0, 5)
+HeaderImage.ZIndex = 5
+HeaderImage.Parent = Main
+
+-- Minimize Button
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Size = UDim2.new(0, 32, 0, 28)
+MinimizeButton.Position = UDim2.new(1, -40, 0, 13)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+MinimizeButton.BackgroundTransparency = 0.2
+MinimizeButton.BorderSizePixel = 0
+MinimizeButton.Text = "–"
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.TextSize = 20
+MinimizeButton.TextColor3 = Color3.new(1, 1, 1)
+MinimizeButton.AutoButtonColor = false
+MinimizeButton.ZIndex = 7
+MinimizeButton.Parent = Main
+
+local MinimizeCorner = Instance.new("UICorner")
+MinimizeCorner.CornerRadius = UDim.new(0, 8)
+MinimizeCorner.Parent = MinimizeButton
+
+local MinimizeStroke = Instance.new("UIStroke")
+MinimizeStroke.Color = Color3.new(1, 1, 1)
+MinimizeStroke.Transparency = 0.35
+MinimizeStroke.Thickness = 1
+MinimizeStroke.Parent = MinimizeButton
+
+-- Divider Line
+local Divider = Instance.new("Frame")
+Divider.Size = UDim2.new(1, -28, 0, 1)
+Divider.Position = UDim2.new(0, 14, 0, 54)
+Divider.BackgroundColor3 = Color3.new(1, 1, 1)
+Divider.BackgroundTransparency = 0.55
+Divider.BorderSizePixel = 0
+Divider.ZIndex = 5
+Divider.Parent = Main
+
+-- ========== Anti Bat Section ==========
+local AntiBatFrame = Instance.new("Frame")
+AntiBatFrame.Name = "AntiBat"
+AntiBatFrame.Size = UDim2.new(1, -28, 0, 44)
+AntiBatFrame.Position = UDim2.new(0, 14, 0, 64)
+AntiBatFrame.BackgroundColor3 = Color3.fromRGB(6, 6, 9)
+AntiBatFrame.BackgroundTransparency = 0.28
+AntiBatFrame.BorderSizePixel = 0
+AntiBatFrame.ZIndex = 5
+AntiBatFrame.Parent = Main
+
+local AntiBatCorner = Instance.new("UICorner")
+AntiBatCorner.CornerRadius = UDim.new(0, 10)
+AntiBatCorner.Parent = AntiBatFrame
+
+local AntiBatStroke = Instance.new("UIStroke")
+AntiBatStroke.Color = Color3.fromRGB(60, 60, 72)
+AntiBatStroke.Thickness = 1.2
+AntiBatStroke.Transparency = 0.4
+AntiBatStroke.Parent = AntiBatFrame
+
+local AntiBatLabel = Instance.new("TextLabel")
+AntiBatLabel.BackgroundTransparency = 1
+AntiBatLabel.Text = "Anti Bat"
+AntiBatLabel.Font = Enum.Font.GothamMedium
+AntiBatLabel.TextSize = 13
+AntiBatLabel.TextColor3 = Color3.fromRGB(240, 240, 250)
+AntiBatLabel.TextXAlignment = Enum.TextXAlignment.Left
+AntiBatLabel.Position = UDim2.new(0, 12, 0, 0)
+AntiBatLabel.Size = UDim2.new(1, -90, 1, 0)
+AntiBatLabel.ZIndex = 6
+AntiBatLabel.Parent = AntiBatFrame
+
+local AntiBatToggle = Instance.new("TextButton")
+AntiBatToggle.Name = "Toggle"
+AntiBatToggle.Size = UDim2.new(0, 58, 0, 26)
+AntiBatToggle.Position = UDim2.new(1, -70, 0.5, -13)
+AntiBatToggle.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
+AntiBatToggle.Text = "OFF"
+AntiBatToggle.Font = Enum.Font.GothamBlack
+AntiBatToggle.TextSize = 12
+AntiBatToggle.TextColor3 = Color3.new(1, 1, 1)
+AntiBatToggle.AutoButtonColor = false
+AntiBatToggle.BorderSizePixel = 0
+AntiBatToggle.ZIndex = 7
+AntiBatToggle.Parent = AntiBatFrame
+
+local AntiBatToggleCorner = Instance.new("UICorner")
+AntiBatToggleCorner.CornerRadius = UDim.new(0, 8)
+AntiBatToggleCorner.Parent = AntiBatToggle
+
+local AntiBatToggleStroke = Instance.new("UIStroke")
+AntiBatToggleStroke.Color = Color3.fromRGB(90, 90, 105)
+AntiBatToggleStroke.Transparency = 0.2
+AntiBatToggleStroke.Parent = AntiBatToggle
+
+-- ========== Hold Jump Section ==========
+local HoldJumpFrame = Instance.new("Frame")
+HoldJumpFrame.Name = "HoldJump"
+HoldJumpFrame.Size = UDim2.new(1, -28, 0, 44)
+HoldJumpFrame.Position = UDim2.new(0, 14, 0, 116)
+HoldJumpFrame.BackgroundColor3 = Color3.fromRGB(6, 6, 9)
+HoldJumpFrame.BackgroundTransparency = 0.28
+HoldJumpFrame.BorderSizePixel = 0
+HoldJumpFrame.ZIndex = 5
+HoldJumpFrame.Parent = Main
+
+local HoldJumpCorner = Instance.new("UICorner")
+HoldJumpCorner.CornerRadius = UDim.new(0, 10)
+HoldJumpCorner.Parent = HoldJumpFrame
+
+local HoldJumpStroke = Instance.new("UIStroke")
+HoldJumpStroke.Color = Color3.fromRGB(60, 60, 72)
+HoldJumpStroke.Thickness = 1.2
+HoldJumpStroke.Transparency = 0.4
+HoldJumpStroke.Parent = HoldJumpFrame
+
+local HoldJumpLabel = Instance.new("TextLabel")
+HoldJumpLabel.BackgroundTransparency = 1
+HoldJumpLabel.Text = "Hold Jump"
+HoldJumpLabel.Font = Enum.Font.GothamMedium
+HoldJumpLabel.TextSize = 13
+HoldJumpLabel.TextColor3 = Color3.fromRGB(240, 240, 250)
+HoldJumpLabel.TextXAlignment = Enum.TextXAlignment.Left
+HoldJumpLabel.Position = UDim2.new(0, 12, 0, 0)
+HoldJumpLabel.Size = UDim2.new(1, -90, 1, 0)
+HoldJumpLabel.ZIndex = 6
+HoldJumpLabel.Parent = HoldJumpFrame
+
+local HoldJumpToggle = Instance.new("TextButton")
+HoldJumpToggle.Name = "Toggle"
+HoldJumpToggle.Size = UDim2.new(0, 58, 0, 26)
+HoldJumpToggle.Position = UDim2.new(1, -70, 0.5, -13)
+HoldJumpToggle.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
+HoldJumpToggle.Text = "OFF"
+HoldJumpToggle.Font = Enum.Font.GothamBlack
+HoldJumpToggle.TextSize = 12
+HoldJumpToggle.TextColor3 = Color3.new(1, 1, 1)
+HoldJumpToggle.AutoButtonColor = false
+HoldJumpToggle.BorderSizePixel = 0
+HoldJumpToggle.ZIndex = 7
+HoldJumpToggle.Parent = HoldJumpFrame
+
+local HoldJumpToggleCorner = Instance.new("UICorner")
+HoldJumpToggleCorner.CornerRadius = UDim.new(0, 8)
+HoldJumpToggleCorner.Parent = HoldJumpToggle
+
+local HoldJumpToggleStroke = Instance.new("UIStroke")
+HoldJumpToggleStroke.Color = Color3.fromRGB(90, 90, 105)
+HoldJumpToggleStroke.Transparency = 0.2
+HoldJumpToggleStroke.Parent = HoldJumpToggle
+
+-- Footer
+local Footer = Instance.new("TextButton")
+Footer.Name = "Footer"
+Footer.Size = UDim2.new(1, -28, 0, 22)
+Footer.Position = UDim2.new(0, 14, 0, 168)
+Footer.BackgroundTransparency = 1
+Footer.Text = "TRACES X 420"
+Footer.TextColor3 = Color3.fromRGB(150, 150, 165)
+Footer.TextSize = 12
+Footer.Font = Enum.Font.GothamBold
+Footer.ZIndex = 6
+Footer.Parent = Main
+
+-- ==================== LOGIC ====================
+
+local isMinimized = false
+local antiBatEnabled = false
+local holdJumpEnabled = false
+local antiBatConnection = nil
+local holdJumpConnection = nil
+
+-- Minimize / Expand
+MinimizeButton.Activated:Connect(function()
+	isMinimized = not isMinimized
+
+	if isMinimized then
+		MinimizeButton.Text = "+"
+		TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
+			Size = UDim2.new(0, 260, 0, 59)
+		}):Play()
+	else
+		MinimizeButton.Text = "–"
+		TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
+			Size = UDim2.new(0, 260, 0, 200)
+		}):Play()
+	end
+end)
+
+-- Anti Bat Toggle
+AntiBatToggle.Activated:Connect(function()
+	antiBatEnabled = not antiBatEnabled
+
+	if antiBatEnabled then
+		AntiBatToggle.Text = "ON"
+		AntiBatToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 80)
+
+		antiBatConnection = RunService.Heartbeat:Connect(function()
+			local character = LocalPlayer.Character
+			if not character then return end
+
+			local hrp = character:FindFirstChild("HumanoidRootPart")
+			if not hrp then return end
+
+			local currentVel = hrp.AssemblyLinearVelocity
+			hrp.AssemblyLinearVelocity = Vector3.new(4000, currentVel.Y, 4000)
+
+			RunService.RenderStepped:Wait()
+
+			hrp.AssemblyLinearVelocity = Vector3.new(currentVel.X, hrp.AssemblyLinearVelocity.Y, currentVel.Z)
+		end)
+	else
+		AntiBatToggle.Text = "OFF"
+		AntiBatToggle.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
+
+		if antiBatConnection then
+			antiBatConnection:Disconnect()
+			antiBatConnection = nil
+		end
+	end
+end)
+
+-- Hold Jump Toggle (FIXED - Infinite Jump)
+HoldJumpToggle.Activated:Connect(function()
+	holdJumpEnabled = not holdJumpEnabled
+
+	if holdJumpEnabled then
+		HoldJumpToggle.Text = "ON"
+		HoldJumpToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 80)
+
+		holdJumpConnection = UserInputService.JumpRequest:Connect(function()
+			local character = LocalPlayer.Character
+			if not character then return end
+
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			end
+		end)
+	else
+		HoldJumpToggle.Text = "OFF"
+		HoldJumpToggle.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
+
+		if holdJumpConnection then
+			holdJumpConnection:Disconnect()
+			holdJumpConnection = nil
+		end
+	end
+end)
+
+-- Make the whole frame draggable
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+Main.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = Main.Position
+	end
+end)
+
+Main.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		Main.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+print("deobf by speed hub ez gng discord.gg/speedhub")
+print("deobf by speed hub ez gng discord.gg/speedhub")
+print("deobf by speed hub ez gng discord.gg/speedhub")
+print("deobf by speed hub ez gng discord.gg/speedhub")
+print("deobf by speed hub ez gng discord.gg/speedhub")
+print("deobf by speed hub ez gng discord.gg/speedhub")

